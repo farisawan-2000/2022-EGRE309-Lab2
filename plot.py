@@ -36,6 +36,7 @@ with open(sys.argv[1]) as f:
                 grad2[1][i][j] = 0
             else:
                 vm = sqrt((grad[0][i][j] ** 2) + (grad[1][i][j] ** 2))
+
                 grad2[0][i][j] = grad[0][i][j] / vm
                 grad2[1][i][j] = grad[1][i][j] / vm
 
