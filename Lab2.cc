@@ -10,10 +10,12 @@
 Decimal grid[2][ITERSIZE][ITERSIZE]; // double buffered
 unsigned bufIndex = 0;
 
+#define CHARGE 1.602e-19
+
 Surface leftSurface = {
     .type = SURF_ROD,
     .position = {0.2, 0.5},
-    .charge = -1.602e-19,
+    .charge = -CHARGE,
     .radius = 0.1,
 
     // .width = 1e-3,
@@ -23,7 +25,7 @@ Surface leftSurface = {
 Surface rightSurface = {
     .type = SURF_ROD,
     .position = {0.8, 0.5},
-    .charge = 1.602e-19,
+    .charge = CHARGE,
     .radius = 0.1,
 
     // .width = 1e-3,
@@ -39,9 +41,9 @@ bool isInCharge(Surface *s, int x, int y) {
     Decimal xx = GRID_TO_METERS(x);
     Decimal yy = GRID_TO_METERS(y);
 
-    if (s->type == SURF_CAPACITOR) {
-        return ((abs(xx - s->position[0]) < s->width) && (abs(yy - s->position[1]) < s->height));
-    }
+    // if (s->type == SURF_CAPACITOR) {
+    //     return ((abs(xx - s->position[0]) < s->width) && (abs(yy - s->position[1]) < s->height));
+    // }
 
     return SQUARE(xx - s->position[0]) + SQUARE(yy - s->position[1]) < SQUARE(s->radius);
 
