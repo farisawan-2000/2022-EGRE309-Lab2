@@ -46,7 +46,7 @@ with open(sys.argv[1]) as f:
     plt.title("Potential + field for %s iterations, %dx%d grid" % (itercount, itersize, itersize))
 
     # quiver plot for visualizing data
-    plt.quiver(range(0, itersize), range(0, itersize), grad2[1], grad2[0], scale=64, minlength=0.001)# color='red', alpha=1)#, width=1/256.0)
+    # plt.quiver(range(0, itersize), range(0, itersize), grad2[1], grad2[0], scale=64, minlength=0.001)# color='red', alpha=1)#, width=1/256.0)
 
     # stream plot for pretty graph
     # plt.streamplot(range(0, itersize), range(0, itersize), grad[1], grad[0], color="white")

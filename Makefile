@@ -1,15 +1,16 @@
 default: data
 
-CPPFLAGS := -march=native -mtune=native -Os -fopenmp -std=c++20 -lfmt
+PROGRAM := Lab2
+CPPFLAGS := -march=native -fno-stack-protector -ffast-math -mtune=native -Os -fopenmp -std=c++20 -lfmt
 
-Lab2: Lab2.h
+$(PROGRAM): Lab2.h
 
-data: Lab2
-	./Lab2
+data: $(PROGRAM)
+	./$(PROGRAM)
 
 plot: data
 	python3 plot.py data
 
 
 clean:
-	rm -f data Lab2
+	rm -f data $(PROGRAM)

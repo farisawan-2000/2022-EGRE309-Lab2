@@ -1,9 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <omp.h>
-#include <fmt/format.h>
-#include <fmt/os.h>
-#include <cfloat>
 
 #include "Lab2.h"
 
@@ -12,13 +10,12 @@ Decimal grid[2][ITERSIZE][ITERSIZE]; // double buffered
 unsigned bufIndex = 0;
 
 #define CHARGE 1.602e-19
-// #define CHARGE 1
 
 Surface leftSurface = {
     .type = SURF_ROD,
-    .position = {0.4, 0.5},
+    .position = {0.2, 0.5},
     .charge = -CHARGE,
-    .radius = 0.05,
+    .radius = 0.1,
 
     // .width = 1e-3,
     // .height = 0.4,
@@ -26,9 +23,9 @@ Surface leftSurface = {
 
 Surface rightSurface = {
     .type = SURF_ROD,
-    .position = {0.6, 0.5},
+    .position = {0.8, 0.5},
     .charge = CHARGE,
-    .radius = 0.05,
+    .radius = 0.1,
 
     // .width = 1e-3,
     // .height = 0.4,
@@ -71,62 +68,13 @@ void finite_method(int x, int y) {
     grid[bufIndex ^ 1][x][y] = result / 4.0;
 }
 
-Decimal vlen(Vector2 v) {
-    return sqrtf(powf(v[0], 2) + powf(v[1], 2));
-}
 
-Decimal getInitialPotential(Surface *s, int x, int y) {
-    Vector2 p = {x, y};
-
-    return m_k * s->charge / (powf(vlen(p - s->radius), 2));
-    // return s->charge;
-}
-
-Decimal mse() {
-    Decimal ret = 0;
-
-    for (int i = 0; i < ITERSIZE; i++) {
-        for (int j = 0; j < ITERSIZE; j++) {
-            Decimal vdiff = powf(grid[bufIndex][i][j] - grid[bufIndex ^ 1][i][j], 2);
-            ret += vdiff;
-        }
-    }
-    return ret;
-
-    ret /= ITERSIZE * ITERSIZE;
-
-    return sqrt(ret);
-}
-
-
-bool checkConvergence() {
-    if (mse() < 0.0001) {
-        return true;
-    }
-    return false;
-}
-
-Decimal find_max_diff(void) {
-    Decimal max = 0;
-    for (int i = 0; i < ITERSIZE; i++) {
-        for (int j = 0; j < ITERSIZE; j++) {
-            if (fabs(grid[bufIndex][i][j] - grid[bufIndex ^ 1][i][j]) > max) {
-                max = fabs(grid[bufIndex][i][j] - grid[bufIndex ^ 1][i][j]);
-            }
-        }
-    }
-
-    return max;
-}
-
-Decimal getRand() {
-    int x = rand() % 65535;
-
-    return ((Decimal)x / 65535.0) * 1.602e-19;
-}
 
 int main(void) {
-    auto out = fmt::output_file("data");
+    FILE * out = fopen("data", "w+");
+
+    fprintf(out, "%d\n", ITERCOUNT);
+    fprintf(out, "%d\n", ITERSIZE);
 
     Surface *s1 = &leftSurface;
     Surface *s2 = &rightSurface;
@@ -135,19 +83,17 @@ int main(void) {
     for (int j = 0; j < ITERSIZE; j++) {
         for (int k = 0; k < ITERSIZE; k++) {
             if (isInCharge(s1, j, k)) {
-                grid[bufIndex][j][k] = getInitialPotential(s1, j, k);
+                grid[bufIndex][j][k] = s1->charge;
             } else if (isInCharge(s2, j, k)) {
-                grid[bufIndex][j][k] = getInitialPotential(s2, j, k);
+                grid[bufIndex][j][k] = s2->charge;
             } else {
-                grid[bufIndex][j][k] = getRand();
+                grid[bufIndex][j][k] = 0;
             }
         }
     }
 
     // iterate
-    int i;
-    for (i = 0; ; i++) {
-        int maxdx = 0, maxdy = 0;
+    for (int i = 0; i < ITERCOUNT; i++) {
         // use all available cores for this operation
         #pragma omp parallel for
         for (int j = 0; j < ITERSIZE; j++) {
@@ -157,33 +103,16 @@ int main(void) {
                 }
             }
         }
-
-        // #pragma omp single 
-        if (i != 0 && i % 1000 == 0) {
-            static Decimal old_mse = CHARGE;
-            Decimal d = mse();
-            fmt::print("{}: {}\n", i, d);
-            if (abs(d - old_mse) < 0.0001) {
-                break;
-            } else {
-                old_mse = d;
-            }
-        }
-
         bufIndex ^= 1;
     }
 
-    out.print("{}\n", i);
-    out.print("{}\n", ITERSIZE);
-
-    fmt::print("Last diff is {}\n", find_max_diff());
 
     // print to file
     for (int j = 0; j < ITERSIZE; j++) {
         for (int k = 0; k < ITERSIZE; k++) {
-            out.print("{} ", grid[bufIndex][j][k]);
+            fprintf(out, "%e ", grid[bufIndex][j][k]);
         }
-        out.print("\n");
+        fprintf(out, "\n");
     }
 
     return 0;
