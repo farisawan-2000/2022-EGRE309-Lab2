@@ -36,21 +36,6 @@ with open(sys.argv[1]) as f:
             grad[0][i][j] *= -1
             grad[1][i][j] *= -1
 
-    # second gradient
-    grad2 = np.gradient(grid)
-    # sample every (n/8)th point
-    for i in range(np.shape(grad)[1]):
-        for j in range(np.shape(grad)[2]):
-
-            if i % 8 != 0 or j % 8 != 0:
-                grad2[0][i][j] = 0
-                grad2[1][i][j] = 0
-            else:
-                vm = sqrt((grad[0][i][j] ** 2) + (grad[1][i][j] ** 2))
-
-                grad2[0][i][j] = grad[0][i][j] / vm
-                grad2[1][i][j] = grad[1][i][j] / vm
-
     # The Laplacian is the divergence of the gradient
     grad2_full = np.gradient(grid)
     retval = divergence(grad2_full)
@@ -60,16 +45,13 @@ with open(sys.argv[1]) as f:
     plt.colorbar()
     plt.title("Potential + field for %s iterations, %dx%d grid" % (itercount, itersize, itersize))
 
-    # quiver plot for visualizing data
-    # plt.quiver(range(0, itersize), range(0, itersize), grad2[1], grad2[0], scale=64, minlength=0.001)# color='red', alpha=1)#, width=1/256.0)
-
     # stream plot for pretty graph
     plt.streamplot(range(0, itersize), range(0, itersize), grad[1], grad[0], color="white")
 
-    # TODO: Graph y=0 of potential
-
     plt.figure(2)
     plt.contourf(retval, levels=100)
+    plt.colorbar()
+    plt.title("Poisson's Equation, ∇²V = ∇⋅∇(V) = 0")
     positive_charge = 0
     negative_charge = 0
     for i in range(np.shape(retval)[0]):
@@ -78,6 +60,8 @@ with open(sys.argv[1]) as f:
                 positive_charge += retval[i][j]
             if retval[i][j] < 0:
                 negative_charge += retval[i][j]
+
+    # Print error value results
     print("Sum of positive values:",positive_charge)
     print("Sum of negative values:",negative_charge)
     print("Total sum of values:", positive_charge + negative_charge)
@@ -85,7 +69,4 @@ with open(sys.argv[1]) as f:
         + str(100*(abs(positive_charge+negative_charge))/positive_charge)
         + "%"
     )
-    np.savetxt("laplacian", retval)
-    plt.colorbar()
-    plt.title("Poisson's Equation, ∇²V = ∇⋅∇(V) = 0")
     plt.show()

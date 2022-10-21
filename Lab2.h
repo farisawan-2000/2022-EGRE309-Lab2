@@ -2,8 +2,7 @@
 
 // Configurable properties
 #define use_floats // comment to use higher precision doubles
-#define ITERCOUNT 50000
-#define ITERSIZE 768
+#define ITERSIZE 512
 
 
 #ifdef use_floats

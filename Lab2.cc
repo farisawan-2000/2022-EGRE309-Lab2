@@ -27,39 +27,39 @@ MSE Thresholds[] = {
         .significand = 2.0,
         .exponent = -11,
     },
-}
+};
 
 /************ ROD SURFACES *****************/
-// Surface leftSurface = {
-//     .type = SURF_ROD,
-//     .position = {0.4, 0.5},
-//     .charge = -CHARGE,
-//     .radius = RADIUS,
-// };
-
-// Surface rightSurface = {
-//     .type = SURF_ROD,
-//     .position = {0.6, 0.5},
-//     .charge = CHARGE,
-//     .radius = RADIUS,
-// };
-
-/************ CAPACITOR SURFACES ***********/
 Surface leftSurface = {
-    .type = SURF_CAPACITOR,
-    .position = {0.499, 0.5},
+    .type = SURF_ROD,
+    .position = {0.4, 0.5},
     .charge = -CHARGE,
-    .width = 1e-3,
-    .height = 0.1,
+    .radius = RADIUS,
 };
 
 Surface rightSurface = {
-    .type = SURF_CAPACITOR,
-    .position = {0.501, 0.5},
+    .type = SURF_ROD,
+    .position = {0.6, 0.5},
     .charge = CHARGE,
-    .width = 1e-3,
-    .height = 0.1,
+    .radius = RADIUS,
 };
+
+/************ CAPACITOR SURFACES ***********/
+// Surface leftSurface = {
+//     .type = SURF_CAPACITOR,
+//     .position = {0.499, 0.5},
+//     .charge = -CHARGE,
+//     .width = 1e-3,
+//     .height = 0.1,
+// };
+
+// Surface rightSurface = {
+//     .type = SURF_CAPACITOR,
+//     .position = {0.501, 0.5},
+//     .charge = CHARGE,
+//     .width = 1e-3,
+//     .height = 0.1,
+// };
 
 inline Decimal Vec2_Mag(Vector2 v) {
     return (v[0] * v[0]) + (v[1] * v[1]);
@@ -214,9 +214,9 @@ int main(void) {
             
             Decimal d = mse(&exp);
             fmt::print("{}: {}e{}\n", numIterations, d, exp);
-            if (d <= Thresholds[s1->type].significand && exp <= Thresholds[s1->type].exponent) {
-                break;
-            }
+            // if (d <= Thresholds[s1->type].significand && exp <= Thresholds[s1->type].exponent) {
+            //     break;
+            // }
         }
     }
 
