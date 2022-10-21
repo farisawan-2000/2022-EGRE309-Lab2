@@ -1,7 +1,8 @@
 default: data
 
 PROGRAM := Lab2
-CPPFLAGS := -march=native -fno-stack-protector -ffast-math -mtune=native -Os -fopenmp -std=c++20 -lfmt
+OPT := -Os
+CPPFLAGS := -march=native -fno-stack-protector -ffast-math -mtune=native $(OPT) -fopenmp -std=c++20 -lfmt
 
 $(PROGRAM): Lab2.h
 

@@ -1,9 +1,19 @@
 #pragma once
 
 // Configurable properties
-typedef float Decimal;
-#define ITERCOUNT 100000
-#define ITERSIZE 512
+#define use_floats // comment to use higher precision doubles
+#define ITERCOUNT 50000
+#define ITERSIZE 768
+
+
+#ifdef use_floats
+    typedef float Decimal;
+    #define pow powf
+    #define sqrt sqrtf
+    #define abs fabsf
+#else
+    typedef double Decimal;
+#endif
 
 #define e0 (8.854e-12)
 #define m_k (1.0 / 4 * M_PI * e0)
@@ -15,7 +25,8 @@ typedef enum SurfaceType {
 typedef Decimal Vector2 __attribute__ ((vector_size (sizeof(Decimal) * 2)));
 
 // 1m x 1m
-#define GRID_TO_METERS(d) ((Decimal)(d) / (Decimal)ITERSIZE)
+#define SCALE 1.0
+#define GRID_TO_METERS(d) ((Decimal)(d) / (Decimal)ITERSIZE / (Decimal)SCALE)
 
 typedef struct Surface {
     SurfaceType type;
@@ -30,6 +41,10 @@ typedef struct Surface {
     Decimal height;
 } Surface;
 
+typedef struct _MSE {
+    Decimal significand;
+    int exponent;
+} MSE;
 
 
 

@@ -3,35 +3,62 @@
 #include <omp.h>
 #include <fmt/format.h>
 #include <fmt/os.h>
+#include <signal.h>
 #include <cfloat>
 
 #include "Lab2.h"
 
-
-Decimal grid[2][ITERSIZE][ITERSIZE]; // double buffered
+// double buffered
+Decimal grid[2][ITERSIZE][ITERSIZE];
 unsigned bufIndex = 0;
+unsigned numIterations = 0;
 
-#define CHARGE 1.602e-19
-// #define CHARGE 1
+// Set Charge and Radius here
+#define CHARGE 1
+#define RADIUS 0.05
 
+// Determines when the simulation stops
+MSE Thresholds[] = {
+    [SURF_ROD] = {
+        .significand = 5.0,
+        .exponent = -15,
+    },
+    [SURF_CAPACITOR] = {
+        .significand = 2.0,
+        .exponent = -11,
+    },
+}
+
+/************ ROD SURFACES *****************/
+// Surface leftSurface = {
+//     .type = SURF_ROD,
+//     .position = {0.4, 0.5},
+//     .charge = -CHARGE,
+//     .radius = RADIUS,
+// };
+
+// Surface rightSurface = {
+//     .type = SURF_ROD,
+//     .position = {0.6, 0.5},
+//     .charge = CHARGE,
+//     .radius = RADIUS,
+// };
+
+/************ CAPACITOR SURFACES ***********/
 Surface leftSurface = {
-    .type = SURF_ROD,
-    .position = {0.4, 0.5},
+    .type = SURF_CAPACITOR,
+    .position = {0.499, 0.5},
     .charge = -CHARGE,
-    .radius = 0.05,
-
-    // .width = 1e-3,
-    // .height = 0.4,
+    .width = 1e-3,
+    .height = 0.1,
 };
 
 Surface rightSurface = {
-    .type = SURF_ROD,
-    .position = {0.6, 0.5},
+    .type = SURF_CAPACITOR,
+    .position = {0.501, 0.5},
     .charge = CHARGE,
-    .radius = 0.05,
-
-    // .width = 1e-3,
-    // .height = 0.4,
+    .width = 1e-3,
+    .height = 0.1,
 };
 
 inline Decimal Vec2_Mag(Vector2 v) {
@@ -43,9 +70,9 @@ bool isInCharge(Surface *s, int x, int y) {
     Decimal xx = GRID_TO_METERS(x);
     Decimal yy = GRID_TO_METERS(y);
 
-    // if (s->type == SURF_CAPACITOR) {
-    //     return ((abs(xx - s->position[0]) < s->width) && (abs(yy - s->position[1]) < s->height));
-    // }
+    if (s->type == SURF_CAPACITOR) {
+        return ((fabs(xx - s->position[0]) < s->width) && (fabs(yy - s->position[1]) < s->height));
+    }
 
     return SQUARE(xx - s->position[0]) + SQUARE(yy - s->position[1]) < SQUARE(s->radius);
 
@@ -72,82 +99,102 @@ void finite_method(int x, int y) {
 }
 
 Decimal vlen(Vector2 v) {
-    return sqrtf(powf(v[0], 2) + powf(v[1], 2));
+    return sqrt(pow(v[0], 2) + pow(v[1], 2));
 }
 
 Decimal getInitialPotential(Surface *s, int x, int y) {
-    Vector2 p = {x, y};
+    if (s->type == SURF_CAPACITOR) {
+        return m_k * s->charge / (pow(s->width/2, 2));
+    }
 
-    return m_k * s->charge / (powf(vlen(p - s->radius), 2));
-    // return s->charge;
+    return m_k * s->charge / (pow(s->radius, 2));
 }
 
-Decimal mse() {
+Decimal mse(int *exp) {
     Decimal ret = 0;
 
     for (int i = 0; i < ITERSIZE; i++) {
         for (int j = 0; j < ITERSIZE; j++) {
-            Decimal vdiff = powf(grid[bufIndex][i][j] - grid[bufIndex ^ 1][i][j], 2);
+            Decimal vdiff = pow(grid[bufIndex][i][j] - grid[bufIndex ^ 1][i][j], 2);
             ret += vdiff;
         }
     }
-    return ret;
 
     ret /= ITERSIZE * ITERSIZE;
 
-    return sqrt(ret);
-}
-
-
-bool checkConvergence() {
-    if (mse() < 0.0001) {
-        return true;
-    }
-    return false;
-}
-
-Decimal find_max_diff(void) {
-    Decimal max = 0;
-    for (int i = 0; i < ITERSIZE; i++) {
-        for (int j = 0; j < ITERSIZE; j++) {
-            if (fabs(grid[bufIndex][i][j] - grid[bufIndex ^ 1][i][j]) > max) {
-                max = fabs(grid[bufIndex][i][j] - grid[bufIndex ^ 1][i][j]);
-            }
+    // Hacky way to split significand and exponent
+    char buf[50]; // allocate buffer
+    sprintf(buf, "%e", sqrt(ret)); // prints e.g. 1.0e-2 for 0.01
+    char *p = buf;
+    // split the string at the occurrence of 'e'
+    while (*p) {
+        if (*p == 'e') {
+            *p = 0;
+            // set exponent
+            *exp = atoi(p + 1);
         }
+        p++;
     }
 
-    return max;
+    // return significand
+    return atof(buf);
 }
 
 Decimal getRand() {
     int x = rand() % 65535;
 
-    return ((Decimal)x / 65535.0) * 1.602e-19;
+    // Decimal max = (m_k * CHARGE / (pow(RADIUS, 2)));
+    Decimal max = 0;
+
+    return ((Decimal)x / 65535.0) * max;
+}
+
+// Establish Output file (faster with fmtlib)
+auto out = fmt::output_file("data");
+
+void writeData() {
+    out.print("{}\n", numIterations);
+    out.print("{}\n", ITERSIZE);
+
+    // print to file
+    for (int j = 0; j < ITERSIZE; j++) {
+        for (int k = 0; k < ITERSIZE; k++) {
+            out.print("{} ", grid[bufIndex][j][k]);
+        }
+        out.print("\n");
+    }
+    exit(0);
 }
 
 int main(void) {
-    auto out = fmt::output_file("data");
 
     Surface *s1 = &leftSurface;
     Surface *s2 = &rightSurface;
 
-    // establish initial conditions: inside charge = ?, outside boundary = 0
+    // establish initial conditions: inside charge = V, outside boundary = 0
     for (int j = 0; j < ITERSIZE; j++) {
         for (int k = 0; k < ITERSIZE; k++) {
             if (isInCharge(s1, j, k)) {
-                grid[bufIndex][j][k] = getInitialPotential(s1, j, k);
+                grid[bufIndex][j][k] =
+                grid[bufIndex ^ 1][j][k] =
+                    getInitialPotential(s1, j, k);
             } else if (isInCharge(s2, j, k)) {
-                grid[bufIndex][j][k] = getInitialPotential(s2, j, k);
+                grid[bufIndex][j][k] =
+                grid[bufIndex ^ 1][j][k] =
+                    getInitialPotential(s2, j, k);
             } else {
-                grid[bufIndex][j][k] = getRand();
+                grid[bufIndex][j][k] =
+                grid[bufIndex ^ 1][j][k] =
+                    getRand();
             }
         }
     }
 
+    // Debug: Press Ctrl-C to exit and write data as-is
+    signal(SIGINT, (__sighandler_t)writeData);
+
     // iterate
-    int i;
-    for (i = 0; ; i++) {
-        int maxdx = 0, maxdy = 0;
+    for (numIterations = 0; ; numIterations++) {
         // use all available cores for this operation
         #pragma omp parallel for
         for (int j = 0; j < ITERSIZE; j++) {
@@ -158,33 +205,22 @@ int main(void) {
             }
         }
 
-        // #pragma omp single 
-        if (i != 0 && i % 1000 == 0) {
-            static Decimal old_mse = CHARGE;
-            Decimal d = mse();
-            fmt::print("{}: {}\n", i, d);
-            if (abs(d - old_mse) < 0.0001) {
+        // Swap Buffers
+        bufIndex ^= 1;
+
+        // Check Mean Squared Error
+        if (numIterations != 0 && numIterations % 1000 == 0) {
+            int exp;
+            
+            Decimal d = mse(&exp);
+            fmt::print("{}: {}e{}\n", numIterations, d, exp);
+            if (d <= Thresholds[s1->type].significand && exp <= Thresholds[s1->type].exponent) {
                 break;
-            } else {
-                old_mse = d;
             }
         }
-
-        bufIndex ^= 1;
     }
 
-    out.print("{}\n", i);
-    out.print("{}\n", ITERSIZE);
-
-    fmt::print("Last diff is {}\n", find_max_diff());
-
-    // print to file
-    for (int j = 0; j < ITERSIZE; j++) {
-        for (int k = 0; k < ITERSIZE; k++) {
-            out.print("{} ", grid[bufIndex][j][k]);
-        }
-        out.print("\n");
-    }
+    writeData();
 
     return 0;
 }
